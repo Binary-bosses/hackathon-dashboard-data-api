@@ -11,7 +11,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func (s *server) getHackathon() fasthttp.RequestHandler {
+func (s *server) getHackathons() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		status := string(ctx.QueryArgs().Peek("status"))
 		var filter expression.ConditionBuilder
@@ -77,6 +77,68 @@ func (s *server) getHackathon() fasthttp.RequestHandler {
 
 		util.SetJSONBody(ctx, apiResp)
 
+	}
+
+}
+
+func (s *server) getHackathon() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+
+		name := string(ctx.QueryArgs().Peek("name"))
+
+		filter := expression.Name("name").Equal(expression.Value(name))
+
+		proj := expression.NamesList(expression.Name("name"), expression.Name("description"), expression.Name("startTime"), expression.Name("endTime"), expression.Name("teams"))
+
+		expr, err := expression.NewBuilder().WithFilter(filter).WithProjection(proj).Build()
+		if err != nil {
+			BasicResponse(400, "Got error building expression:"+err.Error(), ctx)
+			return
+		}
+
+		// Build the query input parameters
+		params := &dynamodb.ScanInput{
+			ExpressionAttributeNames:  expr.Names(),
+			ExpressionAttributeValues: expr.Values(),
+			FilterExpression:          expr.Filter(),
+			ProjectionExpression:      expr.Projection(),
+			TableName:                 aws.String(s.databaseClient.HackathonDetailsTable),
+		}
+
+		// Make the DynamoDB Query API call
+		result, err := s.databaseClient.Service.Scan(params)
+		if err != nil {
+			BasicResponse(400, "Query failed :"+err.Error(), ctx)
+			return
+		}
+
+		for _, i := range result.Items {
+			item := HackathonData{}
+
+			err = dynamodbattribute.UnmarshalMap(i, &item)
+
+			if err != nil {
+				BasicResponse(400, "Couldn't unmarshal hackahon data: "+err.Error(), ctx)
+				return
+			}
+
+			apiResp := APIResponse{
+				Status: 200,
+				Data:   item,
+			}
+
+			util.SetJSONBody(ctx, apiResp)
+
+			return
+		}
+
+		apiResp := APIResponse{
+			Status: 200,
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+
+		return
 	}
 
 }
