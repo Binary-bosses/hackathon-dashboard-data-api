@@ -3,9 +3,57 @@ package server
 import (
 	"fmt"
 
+	"github.com/Binary-bosses/hackathon-dashboard-data-api/util"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/valyala/fasthttp"
 )
+
+func (s *server) validateHackathon() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var present bool
+		var err error
+		name := string(ctx.QueryArgs().Peek("name"))
+		if present, err = s.validateHackathonName(name); err != nil {
+			BasicResponse(400, "Couldn't validate hackathon name: "+err.Error(), ctx)
+			return
+		}
+		if present {
+			BasicResponse(400, "Hackathon name already used", ctx)
+			return
+		}
+
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   Status{Status: "SUCCESS"},
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+	}
+}
+
+func (s *server) validateTeam() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var present bool
+		var err error
+		name := string(ctx.QueryArgs().Peek("name"))
+		if present, err = s.validateTeamName(name); err != nil {
+			BasicResponse(400, "Couldn't validate hackathon name: "+err.Error(), ctx)
+			return
+		}
+		if present {
+			BasicResponse(400, "Team name already used", ctx)
+			return
+		}
+
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   Status{Status: "SUCCESS"},
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+	}
+}
 
 func (s *server) validateTeamName(name string) (bool, error) {
 
