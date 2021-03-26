@@ -55,6 +55,30 @@ func (s *server) validateTeam() fasthttp.RequestHandler {
 	}
 }
 
+func (s *server) validateHackathonAdmin() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var present bool
+		var err error
+		name := string(ctx.QueryArgs().Peek("name"))
+		pass := string(ctx.QueryArgs().Peek("pass"))
+		if present, err = s.validateHackathonPass(name, pass); err != nil {
+			BasicResponse(400, "Couldn't validate hackathon admin: "+err.Error(), ctx)
+			return
+		}
+		if !present {
+			BasicResponse(400, "Wrong pass, no edit access", ctx)
+			return
+		}
+
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   Status{Status: "SUCCESS"},
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+	}
+}
+
 func (s *server) validateTeamName(name string) (bool, error) {
 
 	result, err := s.databaseClient.Service.GetItem(&dynamodb.GetItemInput{
@@ -82,6 +106,30 @@ func (s *server) validateHackathonName(name string) (bool, error) {
 		Key: map[string]*dynamodb.AttributeValue{
 			"name": {
 				S: aws.String(name),
+			},
+		},
+	})
+	if err != nil {
+		return false, fmt.Errorf("Got error calling GetItem: %s", err)
+	}
+
+	if result.Item == nil {
+		return false, nil
+	}
+	return true, nil
+
+}
+
+func (s *server) validateHackathonPass(name, pass string) (bool, error) {
+
+	result, err := s.databaseClient.Service.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(s.databaseClient.HackathonPassTable),
+		Key: map[string]*dynamodb.AttributeValue{
+			"name": {
+				S: aws.String(name),
+			},
+			"pass": {
+				S: aws.String(pass),
 			},
 		},
 	})
