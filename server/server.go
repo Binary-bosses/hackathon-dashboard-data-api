@@ -5,7 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Binary-bosses/hackathon-dashboard-data-api/database"
 	"github.com/Binary-bosses/hackathon-dashboard-data-api/util"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/buaazp/fasthttprouter"
 	"github.com/valyala/fasthttp"
 )
@@ -39,9 +43,26 @@ func (s *server) Stop() {
 }
 
 type server struct {
-	srv           *fasthttp.Server
-	router        *fasthttprouter.Router
-	defaultClient *http.Client
+	srv            *fasthttp.Server
+	router         *fasthttprouter.Router
+	defaultClient  *http.Client
+	databaseClient *database.Database
+}
+
+func (s *server) startDatabase() error {
+	sess, err := session.NewSession(
+		&aws.Config{
+			Region: aws.String(s.databaseClient.Region),
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("Couldn't open up connection")
+	}
+
+	svc := dynamodb.New(sess)
+	s.databaseClient.Service = svc
+	return nil
 }
 
 func newServer() (*server, error) {
@@ -51,7 +72,17 @@ func newServer() (*server, error) {
 	srv := &server{
 		router:        fasthttprouter.New(),
 		defaultClient: client,
+		databaseClient: &database.Database{Region: "ap-south-1",
+			HackathonDetailsTable: "hackathon_details",
+			TeamDetailsTable:      "hackathon_teams",
+			HackathonPassTable:    "hackathon_edit_pass",
+		},
 	}
+
+	if err := srv.startDatabase(); err != nil {
+		return srv, err
+	}
+
 	srv.setupRoutes()
 	srv.srv = &fasthttp.Server{
 		Handler:        srv.router.Handler,

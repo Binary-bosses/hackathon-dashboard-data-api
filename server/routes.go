@@ -23,7 +23,10 @@ type route struct {
 }
 
 func (s *server) routes() []route {
-	return []route{{"GET", "/api/v1/echo/:echo", s.echo(), false}}
+	return []route{
+		{"GET", "/api/v1/echo/:echo", s.echo(), false},
+		{"POST", "/api/v1/hackathon", s.createHackathon(), false},
+	}
 }
 
 // setupRoutes configures all the route info, automatically adding logging
