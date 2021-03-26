@@ -44,7 +44,6 @@ func (s *server) routes() []route {
 
 // setupRoutes configures all the route info, automatically adding logging
 func (s *server) setupRoutes() {
-
 	s.router.NotFound = func(ctx *fasthttp.RequestCtx) {
 		apiResp := APIResponse{
 			Status: 404,
@@ -53,7 +52,7 @@ func (s *server) setupRoutes() {
 		ctx.Response.SetStatusCode(404)
 		util.SetJSONBody(ctx, apiResp)
 	}
-
+	s.router.HandleOPTIONS = true
 	for _, r := range s.routes() {
 		currFunc := r.requestHandler
 
