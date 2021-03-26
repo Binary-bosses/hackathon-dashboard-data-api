@@ -12,6 +12,39 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+func (s *server) createTeam() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var present map[string]*dynamodb.AttributeValue
+		var err error
+
+		createTeam := Team{}
+		if err := json.Unmarshal(ctx.PostBody(), &createTeam); err != nil {
+			BasicResponse(400, "Couldn't read request: "+err.Error(), ctx)
+			return
+		}
+		if present, err = s.searchTeamName(createTeam.Name); err != nil {
+			BasicResponse(400, "Couldn't validate team name '"+createTeam.Name+"' :"+err.Error(), ctx)
+			return
+		}
+		if present != nil {
+			BasicResponse(400, "Team name '"+createTeam.Name+"' already used", ctx)
+			return
+		}
+
+		if err := s.insertTeams([]Team{createTeam}); err != nil {
+			BasicResponse(400, "Couldn't insert teams :"+err.Error(), ctx)
+			return
+		}
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   Status{Status: "SUCCESS"},
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+		return
+	}
+}
+
 func (s *server) createHackathon() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		var present map[string]*dynamodb.AttributeValue
@@ -28,23 +61,6 @@ func (s *server) createHackathon() fasthttp.RequestHandler {
 		}
 		if present != nil {
 			BasicResponse(400, "Hackathon name already used", ctx)
-			return
-		}
-
-		for _, teams := range createEvent.Teams {
-			if present, err = s.searchTeamName(teams.Name); err != nil {
-				BasicResponse(400, "Couldn't validate team name '"+teams.Name+"' :"+err.Error(), ctx)
-				return
-			}
-			if present != nil {
-				BasicResponse(400, "Team name '"+teams.Name+"' already used", ctx)
-				return
-			}
-
-		}
-
-		if err := s.insertTeams(createEvent.Teams); err != nil {
-			BasicResponse(400, "Couldn't insert teams :"+err.Error(), ctx)
 			return
 		}
 
@@ -123,9 +139,6 @@ func (s *server) insertHackathonDetails(data CreateHackathonData) error {
 	hackathonData.StartTime = data.StartTime
 	hackathonData.EndTime = data.EndTime
 	hackathonData.Description = data.Description
-	for _, team := range data.Teams {
-		hackathonData.Teams = append(hackathonData.Teams, HackTeam{Name: team.Name, Idea: team.Idea})
-	}
 
 	av, err := dynamodbattribute.MarshalMap(hackathonData)
 	if err != nil {

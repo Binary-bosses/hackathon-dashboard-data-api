@@ -35,7 +35,9 @@ func (s *server) routes() []route {
 
 		{"POST", "/api/v1/hackathon/team", s.registerHackathon(), false},
 		{"POST", "/api/v1/hackathon", s.createHackathon(), false},
+		{"POST", "/api/v1/team", s.createTeam(), false},
 		{"PUT", "/api/v1/hackathon", s.editHackathon(), false},
+		{"PUT", "/api/v1/team", s.updateTeamDetails(), false},
 		{"DELETE", "/api/v1/hackathon", s.deleteHackathon(), false},
 	}
 }

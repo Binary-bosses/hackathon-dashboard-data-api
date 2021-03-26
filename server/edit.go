@@ -12,12 +12,51 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+func (s *server) updateTeamDetails() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var present map[string]*dynamodb.AttributeValue
+		var err error
+		oldTeam := Team{}
+		createTeam := Team{}
+		if err := json.Unmarshal(ctx.PostBody(), &createTeam); err != nil {
+			BasicResponse(400, "Couldn't read request: "+err.Error(), ctx)
+			return
+		}
+		if present, err = s.searchTeamName(createTeam.Name); err != nil {
+			BasicResponse(400, "Couldn't validate team name '"+createTeam.Name+"' :"+err.Error(), ctx)
+			return
+		}
+		if present == nil {
+			BasicResponse(400, "Team name '"+createTeam.Name+"' not existing", ctx)
+			return
+		}
+
+		if err := dynamodbattribute.UnmarshalMap(present, &oldTeam); err != nil {
+			BasicResponse(400, "Couldn't unmarshal team: "+err.Error(), ctx)
+			return
+		}
+
+		if err := s.updateTeam(oldTeam, createTeam); err != nil {
+			BasicResponse(400, "Couldn't insert teams :"+err.Error(), ctx)
+			return
+		}
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   Status{Status: "SUCCESS"},
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+		return
+
+	}
+}
+
 func (s *server) registerHackathon() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		var present map[string]*dynamodb.AttributeValue
 		var err error
 		var editEvent HackathonData
-		regEvent := CreateHackathonData{}
+		regEvent := EditHackathonData{}
 		if err := json.Unmarshal(ctx.PostBody(), &regEvent); err != nil {
 			BasicResponse(400, "Couldn't read request: "+err.Error(), ctx)
 			return
@@ -41,12 +80,8 @@ func (s *server) registerHackathon() fasthttp.RequestHandler {
 				BasicResponse(400, "Couldn't validate team name: "+err.Error(), ctx)
 				return
 			}
-			if present != nil {
-				BasicResponse(400, "team is already existing", ctx)
-				return
-			}
-			if err := s.insertTeams([]Team{team}); err != nil {
-				BasicResponse(400, "couldn't register the team", ctx)
+			if present == nil {
+				BasicResponse(400, "team not existing", ctx)
 				return
 			}
 		}
@@ -84,7 +119,7 @@ func (s *server) editHackathon() fasthttp.RequestHandler {
 
 		var present map[string]*dynamodb.AttributeValue
 		var err error
-		editEvent := CreateHackathonData{}
+		editEvent := EditHackathonData{}
 		if err := json.Unmarshal(ctx.PostBody(), &editEvent); err != nil {
 			BasicResponse(400, "Couldn't read request: "+err.Error(), ctx)
 			return
@@ -106,16 +141,6 @@ func (s *server) editHackathon() fasthttp.RequestHandler {
 			}
 			if present == nil {
 				BasicResponse(400, "team is not existing", ctx)
-				return
-			}
-			var oldTeam Team
-			if err := dynamodbattribute.UnmarshalMap(present, &oldTeam); err != nil {
-				BasicResponse(400, "Couldn't unmarshal team: "+err.Error(), ctx)
-				return
-			}
-
-			if err := s.updateTeam(oldTeam, team); err != nil {
-				BasicResponse(400, "couldn't update teams: "+err.Error(), ctx)
 				return
 			}
 		}
