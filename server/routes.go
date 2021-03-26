@@ -27,6 +27,7 @@ func (s *server) routes() []route {
 		{"GET", "/api/v1/echo/:echo", s.echo(), false},
 		{"POST", "/api/v1/hackathon", s.createHackathon(), false},
 		{"PUT", "/api/v1/hackathon", s.editHackathon(), false},
+		{"DELETE", "/api/v1/hackathon", s.deleteHackathon(), false},
 		{"GET", "/api/v1/validate/hackathonName", s.validateHackathon(), false},
 		{"GET", "/api/v1/validate/teamName", s.validateTeam(), false},
 		{"GET", "/api/v1/validate/admin", s.validateHackathonAdmin(), false},
