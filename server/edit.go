@@ -12,6 +12,73 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+func (s *server) registerHackathon() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var present map[string]*dynamodb.AttributeValue
+		var err error
+		var editEvent HackathonData
+		regEvent := CreateHackathonData{}
+		if err := json.Unmarshal(ctx.PostBody(), &regEvent); err != nil {
+			BasicResponse(400, "Couldn't read request: "+err.Error(), ctx)
+			return
+		}
+		if present, err = s.searchHackathonName(regEvent.Name); err != nil {
+			BasicResponse(400, "Couldn't validate hackathon name: "+err.Error(), ctx)
+			return
+		}
+		if present == nil {
+			BasicResponse(400, "Hackathon is not existing", ctx)
+			return
+		}
+
+		if err := dynamodbattribute.UnmarshalMap(present, &editEvent); err != nil {
+			BasicResponse(400, "Couldn't unmarshal team: "+err.Error(), ctx)
+			return
+		}
+
+		for _, team := range regEvent.Teams {
+			if present, err = s.searchTeamName(team.Name); err != nil {
+				BasicResponse(400, "Couldn't validate team name: "+err.Error(), ctx)
+				return
+			}
+			if present != nil {
+				BasicResponse(400, "team is already existing", ctx)
+				return
+			}
+			if err := s.insertTeams([]Team{team}); err != nil {
+				BasicResponse(400, "couldn't register the team", ctx)
+				return
+			}
+		}
+
+		var hackathonData HackathonData
+
+		hackathonData.Name = editEvent.Name
+		hackathonData.StartTime = editEvent.StartTime
+		hackathonData.EndTime = editEvent.EndTime
+		hackathonData.Description = editEvent.Description
+		hackathonData.Winner = editEvent.Winner
+		for _, team := range editEvent.Teams {
+			hackathonData.Teams = append(hackathonData.Teams, HackTeam{Name: team.Name, Idea: team.Idea})
+		}
+
+		for _, team := range regEvent.Teams {
+			hackathonData.Teams = append(hackathonData.Teams, HackTeam{Name: team.Name, Idea: team.Idea})
+		}
+
+		if err := s.updateHackathonDetails(hackathonData, editEvent.Name); err != nil {
+			BasicResponse(400, "couldn't update teams: "+err.Error(), ctx)
+			return
+		}
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   Status{Status: "SUCCESS"},
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+	}
+}
+
 func (s *server) editHackathon() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 
