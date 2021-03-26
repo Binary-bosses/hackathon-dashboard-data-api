@@ -68,6 +68,7 @@ func (s *server) setupRoutes() {
 func allowCORS(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
 	ctx.Response.Header.Set("Access-Control-Allow-Methods", "*")
+	ctx.Response.Header.Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 
 }
 
@@ -77,6 +78,10 @@ func (s *server) logWrapper(f fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		log.Printf("Received request ID %d: %s %s", ctx.ConnID(), ctx.Method(), ctx.RequestURI())
 		allowCORS(ctx)
+		if ctx.Request.Header.IsOptions() {
+			return
+		}
+
 		start := time.Now()
 		f(ctx)
 		end := time.Since(start)
