@@ -65,13 +65,16 @@ func (s *server) setupRoutes() {
 		log.Printf("Mapped route %s %s to %s\n", r.httpMethod, r.path, getFunctionName(r.requestHandler))
 	}
 }
+func allowCORS(ctx *fasthttp.RequestCtx) {
+	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+}
 
 // Wraps a logger around the response that gives the name of the responding function,
 // http method, and path. It also tells how long it took to complete, and its status
 func (s *server) logWrapper(f fasthttp.RequestHandler) fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		log.Printf("Received request ID %d: %s %s", ctx.ConnID(), ctx.Method(), ctx.RequestURI())
-
+		allowCORS(ctx)
 		start := time.Now()
 		f(ctx)
 		end := time.Since(start)
