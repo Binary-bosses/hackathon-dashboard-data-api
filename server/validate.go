@@ -11,14 +11,14 @@ import (
 
 func (s *server) validateHackathon() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		var present bool
+		var present map[string]*dynamodb.AttributeValue
 		var err error
 		name := string(ctx.QueryArgs().Peek("name"))
-		if present, err = s.validateHackathonName(name); err != nil {
+		if present, err = s.searchHackathonName(name); err != nil {
 			BasicResponse(400, "Couldn't validate hackathon name: "+err.Error(), ctx)
 			return
 		}
-		if present {
+		if present != nil {
 			BasicResponse(400, "Hackathon name already used", ctx)
 			return
 		}
@@ -34,14 +34,14 @@ func (s *server) validateHackathon() fasthttp.RequestHandler {
 
 func (s *server) validateTeam() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		var present bool
+		var present map[string]*dynamodb.AttributeValue
 		var err error
 		name := string(ctx.QueryArgs().Peek("name"))
-		if present, err = s.validateTeamName(name); err != nil {
+		if present, err = s.searchTeamName(name); err != nil {
 			BasicResponse(400, "Couldn't validate hackathon name: "+err.Error(), ctx)
 			return
 		}
-		if present {
+		if present != nil {
 			BasicResponse(400, "Team name already used", ctx)
 			return
 		}
@@ -79,7 +79,7 @@ func (s *server) validateHackathonAdmin() fasthttp.RequestHandler {
 	}
 }
 
-func (s *server) validateTeamName(name string) (bool, error) {
+func (s *server) searchTeamName(name string) (map[string]*dynamodb.AttributeValue, error) {
 
 	result, err := s.databaseClient.Service.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(s.databaseClient.TeamDetailsTable),
@@ -90,16 +90,16 @@ func (s *server) validateTeamName(name string) (bool, error) {
 		},
 	})
 	if err != nil {
-		return false, fmt.Errorf("Got error calling GetItem: %s", err)
+		return nil, fmt.Errorf("Got error calling GetItem: %s", err)
 	}
 
 	if result.Item == nil {
-		return false, nil
+		return nil, nil
 	}
-	return true, nil
+	return result.Item, nil
 }
 
-func (s *server) validateHackathonName(name string) (bool, error) {
+func (s *server) searchHackathonName(name string) (map[string]*dynamodb.AttributeValue, error) {
 
 	result, err := s.databaseClient.Service.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(s.databaseClient.HackathonDetailsTable),
@@ -110,13 +110,13 @@ func (s *server) validateHackathonName(name string) (bool, error) {
 		},
 	})
 	if err != nil {
-		return false, fmt.Errorf("Got error calling GetItem: %s", err)
+		return nil, fmt.Errorf("Got error calling GetItem: %s", err)
 	}
 
 	if result.Item == nil {
-		return false, nil
+		return nil, nil
 	}
-	return true, nil
+	return result.Item, nil
 
 }
 

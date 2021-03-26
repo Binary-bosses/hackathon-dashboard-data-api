@@ -14,7 +14,7 @@ import (
 
 func (s *server) createHackathon() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
-		var present bool
+		var present map[string]*dynamodb.AttributeValue
 		var err error
 		createEvent := CreateHackathonData{}
 		if err := json.Unmarshal(ctx.PostBody(), &createEvent); err != nil {
@@ -22,21 +22,21 @@ func (s *server) createHackathon() fasthttp.RequestHandler {
 			return
 		}
 
-		if present, err = s.validateHackathonName(createEvent.Name); err != nil {
+		if present, err = s.searchHackathonName(createEvent.Name); err != nil {
 			BasicResponse(400, "Couldn't validate hackathon name: "+err.Error(), ctx)
 			return
 		}
-		if present {
+		if present != nil {
 			BasicResponse(400, "Hackathon name already used", ctx)
 			return
 		}
 
 		for _, teams := range createEvent.Teams {
-			if present, err = s.validateTeamName(teams.Name); err != nil {
+			if present, err = s.searchTeamName(teams.Name); err != nil {
 				BasicResponse(400, "Couldn't validate team name '"+teams.Name+"' :"+err.Error(), ctx)
 				return
 			}
-			if present {
+			if present != nil {
 				BasicResponse(400, "Team name '"+teams.Name+"' already used", ctx)
 				return
 			}

@@ -1,6 +1,7 @@
 package server
 
 type CreateHackathonData struct {
+	OldName       string      `json:"oldName"`
 	Name          string      `json:"name"`
 	Description   string      `json:"description"`
 	StartTime     interface{} `json:"startTime"`
