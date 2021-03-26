@@ -31,17 +31,17 @@ func (s *server) deleteHackathon() fasthttp.RequestHandler {
 
 		for _, team := range data.Teams {
 
-			if present, err = s.searchTeamName(team); err != nil {
+			if present, err = s.searchTeamName(team.Name); err != nil {
 				BasicResponse(400, "Couldn't validate team name: "+err.Error(), ctx)
 				return
 			}
 			if present == nil {
-				BasicResponse(400, "team "+team+" is not existing", ctx)
+				BasicResponse(400, "team "+team.Name+" is not existing", ctx)
 				return
 			}
 
-			if err := s.deleteTeam(team); err != nil {
-				BasicResponse(400, "couldn't delete team "+team+" :"+err.Error(), ctx)
+			if err := s.deleteTeam(team.Name); err != nil {
+				BasicResponse(400, "couldn't delete team "+team.Name+" :"+err.Error(), ctx)
 				return
 			}
 		}

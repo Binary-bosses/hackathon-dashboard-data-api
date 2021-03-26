@@ -8,10 +8,12 @@ type CreateHackathonData struct {
 	EndTime       interface{} `json:"endTime"`
 	Teams         []Team      `json:"teams"`
 	HackathonPass string      `json:"hackathonPass"`
+	Winner        string      `json:"winner,omitempty"`
 }
 
 type Team struct {
 	Name    string   `json:"name"`
+	Idea    string   `json:"idea,omitempty"`
 	Members []string `json:"members"`
 }
 
@@ -20,7 +22,13 @@ type HackathonData struct {
 	Description string      `json:"description"`
 	StartTime   interface{} `json:"startTime"`
 	EndTime     interface{} `json:"endTime"`
-	Teams       []string    `json:"teams"`
+	Teams       []HackTeam  `json:"teams"`
+	Winner      string      `json:"winner,omitempty"`
+}
+
+type HackTeam struct {
+	Name string `json:"name"`
+	Idea string `json:"idea"`
 }
 
 type HackathonHighLevelData struct {
@@ -28,6 +36,7 @@ type HackathonHighLevelData struct {
 	Description string      `json:"description"`
 	StartTime   interface{} `json:"startTime"`
 	EndTime     interface{} `json:"endTime"`
+	Winner      string      `json:"winner,omitempty"`
 }
 
 type HackathonEditPass struct {

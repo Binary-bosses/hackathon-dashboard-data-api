@@ -71,6 +71,7 @@ func (s *server) createHackathon() fasthttp.RequestHandler {
 
 func (s *server) insertTeams(teams []Team) error {
 	for _, team := range teams {
+		team.Idea = ""
 		av, err := dynamodbattribute.MarshalMap(team)
 		if err != nil {
 			return errors.New("Got error marshalling new team item: " + err.Error())
@@ -123,7 +124,7 @@ func (s *server) insertHackathonDetails(data CreateHackathonData) error {
 	hackathonData.EndTime = data.EndTime
 	hackathonData.Description = data.Description
 	for _, team := range data.Teams {
-		hackathonData.Teams = append(hackathonData.Teams, team.Name)
+		hackathonData.Teams = append(hackathonData.Teams, HackTeam{Name: team.Name, Idea: team.Idea})
 	}
 
 	av, err := dynamodbattribute.MarshalMap(hackathonData)

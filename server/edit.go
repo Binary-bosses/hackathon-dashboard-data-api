@@ -59,8 +59,9 @@ func (s *server) editHackathon() fasthttp.RequestHandler {
 		hackathonData.StartTime = editEvent.StartTime
 		hackathonData.EndTime = editEvent.EndTime
 		hackathonData.Description = editEvent.Description
+		hackathonData.Winner = editEvent.Winner
 		for _, team := range editEvent.Teams {
-			hackathonData.Teams = append(hackathonData.Teams, team.Name)
+			hackathonData.Teams = append(hackathonData.Teams, HackTeam{Name: team.Name, Idea: team.Idea})
 		}
 		if err := s.updateHackathonDetails(hackathonData, editEvent.Name); err != nil {
 			BasicResponse(400, "couldn't update teams: "+err.Error(), ctx)
@@ -81,7 +82,15 @@ func (s *server) updateHackathonDetails(data HackathonData, name string) error {
 	var teams []*dynamodb.AttributeValue
 
 	for _, team := range data.Teams {
-		teams = append(teams, &dynamodb.AttributeValue{S: aws.String(team)})
+		teams = append(teams, &dynamodb.AttributeValue{M: map[string]*dynamodb.AttributeValue{
+			"name": {
+				S: aws.String(team.Name),
+			},
+			"idea": {
+				S: aws.String(team.Idea),
+			},
+		},
+		})
 	}
 
 	input := &dynamodb.UpdateItemInput{
@@ -107,6 +116,11 @@ func (s *server) updateHackathonDetails(data HackathonData, name string) error {
 		},
 		ReturnValues:     aws.String("UPDATED_NEW"),
 		UpdateExpression: aws.String("set teams = :teams, description = :description, startTime = :startTime, endTime = :endTime "),
+	}
+
+	if data.Winner != "" {
+		input.ExpressionAttributeValues[":winner"] = &dynamodb.AttributeValue{S: aws.String(data.Winner)}
+		input.UpdateExpression = aws.String("set teams = :teams, description = :description, startTime = :startTime, endTime = :endTime, winner= :winner")
 	}
 
 	_, err := s.databaseClient.Service.UpdateItem(input)
