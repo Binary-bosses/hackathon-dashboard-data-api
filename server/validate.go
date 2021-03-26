@@ -128,9 +128,6 @@ func (s *server) validateHackathonPass(name, pass string) (bool, error) {
 			"name": {
 				S: aws.String(name),
 			},
-			"pass": {
-				S: aws.String(pass),
-			},
 		},
 	})
 	if err != nil {
@@ -140,6 +137,11 @@ func (s *server) validateHackathonPass(name, pass string) (bool, error) {
 	if result.Item == nil {
 		return false, nil
 	}
-	return true, nil
+	if password, ok := result.Item["pass"]; ok {
+		if *password.S == pass {
+			return true, nil
+		}
+	}
+	return false, nil
 
 }
