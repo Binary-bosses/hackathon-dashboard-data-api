@@ -67,6 +67,8 @@ func (s *server) setupRoutes() {
 }
 func allowCORS(ctx *fasthttp.RequestCtx) {
 	ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Response.Header.Set("Access-Control-Allow-Methods", "*")
+
 }
 
 // Wraps a logger around the response that gives the name of the responding function,
