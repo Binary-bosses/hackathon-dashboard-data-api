@@ -23,6 +23,13 @@ type HackathonData struct {
 	Teams       []string    `json:"teams"`
 }
 
+type HackathonHighLevelData struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	StartTime   interface{} `json:"startTime"`
+	EndTime     interface{} `json:"endTime"`
+}
+
 type HackathonEditPass struct {
 	Name string `json:"name"`
 	Pass string `json:"pass"`

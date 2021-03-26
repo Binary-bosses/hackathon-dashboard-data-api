@@ -25,6 +25,7 @@ type route struct {
 func (s *server) routes() []route {
 	return []route{
 		{"GET", "/api/v1/echo/:echo", s.echo(), false},
+		{"GET", "/api/v1/hackathons", s.getHackathon(), false},
 		{"POST", "/api/v1/hackathon", s.createHackathon(), false},
 		{"PUT", "/api/v1/hackathon", s.editHackathon(), false},
 		{"DELETE", "/api/v1/hackathon", s.deleteHackathon(), false},
