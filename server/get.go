@@ -88,7 +88,7 @@ func (s *server) getHackathon() fasthttp.RequestHandler {
 
 		filter := expression.Name("name").Equal(expression.Value(name))
 
-		proj := expression.NamesList(expression.Name("name"), expression.Name("description"), expression.Name("startTime"), expression.Name("endTime"), expression.Name("teams"))
+		proj := expression.NamesList(expression.Name("name"), expression.Name("description"), expression.Name("startTime"), expression.Name("endTime"), expression.Name("teams"), expression.Name("winner"))
 
 		expr, err := expression.NewBuilder().WithFilter(filter).WithProjection(proj).Build()
 		if err != nil {
