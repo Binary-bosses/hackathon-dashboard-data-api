@@ -11,6 +11,52 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+func (s *server) getTeams() fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		var expr expression.Expression
+		var err error
+		proj := expression.NamesList(expression.Name("name"), expression.Name("members"))
+		expr, err = expression.NewBuilder().WithProjection(proj).Build()
+		// Build the query input parameters
+		params := &dynamodb.ScanInput{
+			ExpressionAttributeNames:  expr.Names(),
+			ExpressionAttributeValues: expr.Values(),
+			FilterExpression:          expr.Filter(),
+			ProjectionExpression:      expr.Projection(),
+			TableName:                 aws.String(s.databaseClient.TeamDetailsTable),
+		}
+
+		// Make the DynamoDB Query API call
+		result, err := s.databaseClient.Service.Scan(params)
+		if err != nil {
+			BasicResponse(400, "Query failed :"+err.Error(), ctx)
+			return
+		}
+
+		var items []Team
+		for _, i := range result.Items {
+			item := Team{}
+
+			err = dynamodbattribute.UnmarshalMap(i, &item)
+
+			if err != nil {
+				BasicResponse(400, "Couldn't unmarshal hackahon data: "+err.Error(), ctx)
+				return
+			}
+
+			items = append(items, item)
+		}
+
+		apiResp := APIResponse{
+			Status: 200,
+			Data:   items,
+		}
+
+		util.SetJSONBody(ctx, apiResp)
+
+	}
+}
+
 func (s *server) getHackathons() fasthttp.RequestHandler {
 	return func(ctx *fasthttp.RequestCtx) {
 		status := string(ctx.QueryArgs().Peek("status"))
